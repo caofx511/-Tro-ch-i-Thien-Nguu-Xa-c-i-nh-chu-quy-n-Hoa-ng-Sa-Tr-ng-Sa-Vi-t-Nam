@@ -62,7 +62,7 @@
             box-shadow: 0 4px 15px rgba(218, 37, 29, 0.4);
         }
 
-        /* Avatar Thiên Ngưu */
+        /* Avatar Thiên Ngưu hiển thị trực tiếp từ file thien_nguu.jpg */
         .flappy-bull-container { width: 110px; height: 110px; display: flex; align-items: center; justify-content: center; }
         .flappy-bull-img { width: 100px; height: 100px; object-fit: contain; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.8)); transition: transform 0.1s ease-out; }
 
@@ -135,7 +135,7 @@
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri' }).addTo(map);
         L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { opacity: 0.4 }).addTo(map);
 
-        // 2. Danh sách Đảo thuộc Hoàng Sa & Trường Sa Việt Nam
+        // 2. Danh sách Đảo
         const islands = [
             { name: "Đảo Tri Tôn", lat: 15.7833, lng: 111.2000 },
             { name: "Đảo Hoàng Sa", lat: 16.5333, lng: 111.6167 },
@@ -163,10 +163,10 @@
         let isPlaying = false;
         let gameLoopId = null;
 
-        // Marker Thiên Ngưu
+        // Marker Thiên Ngưu - Load trực tiếp file thien_nguu.jpg
         const bullIcon = L.divIcon({
             className: 'flappy-bull-container',
-            html: `<img id="bull-img" src="./thien_nguu.jpg" class="flappy-bull-img" onerror="this.src='https://i.imgur.com/2D5kZgN.png'" />`,
+            html: `<img id="bull-img" src="./thien_nguu.jpg" class="flappy-bull-img" />`,
             iconSize: [110, 110],
             iconAnchor: [55, 55]
         });
@@ -264,7 +264,7 @@
         }
 
         function claimIsland(island) {
-            // 1. Cắm Lá Cờ VN Cao Vút
+            // 1. Cắm Cờ
             L.marker([island.lat, island.lng], {
                 icon: L.divIcon({
                     className: 'tall-flag-container',
@@ -290,7 +290,6 @@
             if (currentTargetIndex < islands.length) {
                 document.getElementById('target-island').innerText = islands[currentTargetIndex].name;
             } else {
-                // HOÀN THÀNH TẤT CẢ CÁC ĐẢO -> THIÊN NGƯU VẼ KHÉP KÍN RANH GIỚI
                 finishGameSequence();
             }
         }
@@ -298,11 +297,9 @@
         function finishGameSequence() {
             isPlaying = false;
             
-            // Vẽ đường ranh giới nối khép kín về đảo xuất phát
             boundaryPath.push(boundaryPath[0]);
             polyline.setLatLngs(boundaryPath);
 
-            // Thiên Ngưu tự động bay lượn khép kín đường ranh giới
             let step = 0;
             const autoFly = setInterval(() => {
                 if (step < boundaryPath.length) {
@@ -311,7 +308,6 @@
                     step++;
                 } else {
                     clearInterval(autoFly);
-                    // Hiện màn hình chúc mừng đúng yêu cầu
                     document.getElementById('msg-title').innerText = '🎉 BẠN ĐÃ HOÀN THÀNH XÁC ĐỊNH ĐẢO HOÀNG SA TRƯỜNG SA CỦA VN!';
                     document.getElementById('msg-desc').innerHTML = `
                         <b>Tổng điểm Yêu Nước nhận được: <span style="color: #ffde00; font-size: 18px;">${patriotScore} Điểm</span></b><br><br>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Thiên Ngưu - Xác Nhận Chủ Quyền Hoàng Sa & Trường Sa</title>
+    <title>Thiên Ngưu Nhảy Đảo - Xác Nhận Chủ Quyền Hoàng Sa & Trường Sa</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -29,8 +29,12 @@
         .info-panel h2 { color: #ffd700; font-size: 16px; margin-bottom: 6px; text-transform: uppercase; }
         .info-panel p { font-size: 12.5px; color: #cbd5e1; margin-bottom: 8px; line-height: 1.3; }
         .score-box { font-size: 15px; font-weight: bold; color: #ffde00; margin: 6px 0; display: flex; justify-content: space-between; }
-        .progress-bar { background: #334155; height: 10px; border-radius: 5px; overflow: hidden; margin-top: 5px; }
-        .progress-fill { background: linear-gradient(90deg, #da251d, #ffde00); height: 100%; width: 0%; transition: width 0.3s; }
+        
+        /* Thanh tích lực Nhảy */
+        .power-box { margin-top: 10px; }
+        .power-label { font-size: 12px; color: #ffd700; font-weight: bold; margin-bottom: 3px; }
+        .power-bar { background: #334155; height: 14px; border-radius: 7px; overflow: hidden; border: 1px solid #ffd700; }
+        .power-fill { background: linear-gradient(90deg, #ffde00, #da251d); height: 100%; width: 0%; transition: width 0.05s; }
 
         /* Nút điều khiển cảm ứng */
         .touch-controls {
@@ -40,20 +44,25 @@
             transform: translateX(-50%);
             z-index: 1500;
             display: flex;
-            gap: 20px;
+            gap: 15px;
         }
         .btn-touch {
-            background: rgba(15, 23, 42, 0.88);
+            background: rgba(15, 23, 42, 0.9);
             border: 2px solid #ffd700;
             color: #ffd700;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
-            padding: 12px 25px;
+            padding: 12px 20px;
             border-radius: 30px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
             cursor: pointer;
         }
-        .btn-touch:active { background: #ffd700; color: #000; }
+        .btn-jump-touch {
+            background: linear-gradient(135deg, #da251d, #ffde00);
+            color: #000;
+            font-size: 18px;
+            padding: 12px 30px;
+        }
 
         /* Màn hình thông báo */
         .overlay-msg {
@@ -82,12 +91,11 @@
             border-radius: 8px;
             font-size: 16px;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(218, 37, 29, 0.4);
         }
 
-        /* Avatar Thiên Ngưu TO VÀ RÕ */
+        /* Avatar Thiên Ngưu TO */
         .flappy-bull-container { width: 130px; height: 130px; display: flex; align-items: center; justify-content: center; }
-        .flappy-bull-img { width: 120px; height: 120px; object-fit: contain; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.8)); transition: transform 0.1s ease-out; }
+        .flappy-bull-img { width: 120px; height: 120px; object-fit: contain; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.8)); }
 
         /* CỜ CHÍNH TO CAO VÚT */
         .main-flag-container {
@@ -97,12 +105,10 @@
             animation: flagPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
         .main-flag-top { font-size: 50px; line-height: 1; filter: drop-shadow(0px 4px 10px rgba(0,0,0,0.8)); }
-        .main-flag-pole { width: 6px; height: 50px; background: linear-gradient(to bottom, #ffd700, #8b5a2b); border-radius: 3px; }
+        .main-flag-pole { width: 6px; height: 45px; background: linear-gradient(to bottom, #ffd700, #8b5a2b); border-radius: 3px; }
 
         /* CỜ PHỤ NHỎ XUNG QUANH HÀNG LOẠT */
-        .sub-flag-container {
-            animation: flagPop 0.6s ease-out forwards;
-        }
+        .sub-flag-container { animation: flagPop 0.6s ease-out forwards; }
         .sub-flag-top { font-size: 28px; line-height: 1; filter: drop-shadow(0px 2px 5px rgba(0,0,0,0.6)); }
 
         @keyframes flagPop {
@@ -119,33 +125,37 @@
             padding: 4px 10px !important;
             font-weight: bold !important;
             font-size: 13px !important;
-            white-space: nowrap !important;
         }
     </style>
 </head>
 <body>
 
     <div class="info-panel">
-        <h2>🇻🇳 THIÊN NGƯU BẢO VỆ CHỦ QUYỀN</h2>
-        <p>• <b>XUẤT PHÁT:</b> Đất liền VN (Đà Nẵng)<br>• <b>CLICK / SPACE:</b> Nhảy/Vỗ cánh bay<br>• <b>A / D / NÚT CẢM ỨNG:</b> Lái Trái / Phải</p>
+        <h2>🇻🇳 THIÊN NGƯU NHẢY ĐẢO CHỦ QUYỀN</h2>
+        <p>• <b>GIỮ CHUỘT / SPACE / GIỮ NÚT:</b> Tích lực nhảy<br>• <b>THẢ RA:</b> Bắn Thiên Ngưu nhảy ra đảo<br>• <b>A / D / NÚT LÁI:</b> Chỉnh góc nhảy Trái / Phải</p>
         <div class="score-box">
             <span>❤️ Điểm Yêu Nước: <span id="patriot-score" style="color: #ffde00;">0</span> pt</span>
             <span>📍 Cắm cờ: <span id="claimed-count">0</span>/<span id="total-count">0</span></span>
         </div>
-        <div style="font-size: 12px; color: #94a3b8; margin-bottom: 4px;">Đảo tiếp theo: <strong id="target-island" style="color: #ffde00;">Đảo Tri Tôn</strong></div>
-        <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+        <div style="font-size: 12px; color: #94a3b8; margin-bottom: 4px;">Mục tiêu: <strong id="target-island" style="color: #ffde00;">Đảo Tri Tôn</strong></div>
+        
+        <div class="power-box">
+            <div class="power-label">🚀 SỨC NHẢY (TÍCH LỰC):</div>
+            <div class="power-bar"><div class="power-fill" id="power-fill"></div></div>
+        </div>
     </div>
 
-    <!-- Nút Lái Cảm Ứng Màn Hình -->
+    <!-- Nút Lái & Nhảy Cảm Ứng -->
     <div class="touch-controls">
         <button class="btn-touch" id="btn-left">⬅️ Trái</button>
+        <button class="btn-touch btn-jump-touch" id="btn-jump">🚀 GIỮ ĐỂ NHẢY</button>
         <button class="btn-touch" id="btn-right">Phải ➡️</button>
     </div>
 
     <div id="msg-box" class="overlay-msg">
         <h1 id="msg-title">🇻🇳 THIÊN NGƯU XUẤT PHÁT TỪ ĐẤT LIỀN</h1>
-        <p id="msg-desc">Bay từ đất liền ra các đảo thuộc quần đảo Hoàng Sa và Trường Sa. Đậu chính xác vào đảo để cắm <b>HÀNG LOẠT CỜ VIỆT NAM</b> nhé!</p>
-        <button class="btn-start" onclick="startGame()">BẮT ĐẦU BAY 🚀</button>
+        <p id="msg-desc">Thiên Ngưu đang đứng tại <b>Đà Nẵng (Đất liền VN)</b>. Hãy <b>GIỮ LỰC NHẢY</b> rồi thả ra để nhảy ra đảo. Nhảy đậu đúng đảo sẽ cắm <b>HÀNG LOẠT CỜ VIỆT NAM</b>!</p>
+        <button class="btn-start" onclick="startGame()">BẮT ĐẦU CHƠI 🚀</button>
     </div>
 
     <div id="map"></div>
@@ -165,7 +175,6 @@
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri' }).addTo(map);
         L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { opacity: 0.4 }).addTo(map);
 
-        // Danh sách các đảo
         const islands = [
             { name: "Đảo Tri Tôn (Hoàng Sa)", lat: 15.7833, lng: 111.2000 },
             { name: "Đảo Hoàng Sa", lat: 16.5333, lng: 111.6167 },
@@ -181,17 +190,14 @@
         // Vị trí xuất phát: ĐẤT LIỀN VIỆT NAM (Đà Nẵng)
         const mainlandPos = { lat: 16.0544, lng: 108.2022 };
 
-        let bullPos = { ...mainlandPos };
-        let velocityY = 0; 
-        const gravity = -0.0035; 
-        const flapStrength = 0.055; 
-        const moveSpeed = 0.35;
-
-        let keyState = { left: false, right: false };
+        let currentPos = { ...mainlandPos };
         let currentTargetIndex = 0;
         let patriotScore = 0;
-        let isPlaying = false;
-        let gameLoopId = null;
+        let isCharging = false;
+        let isJumping = false;
+        let power = 0;
+        let powerInterval = null;
+        let angleOffset = 0; // Chỉnh hướng trái/phải
 
         // Avatar Thiên Ngưu TO
         const bullIcon = L.divIcon({
@@ -201,9 +207,9 @@
             iconAnchor: [65, 65]
         });
 
-        const bullMarker = L.marker([bullPos.lat, bullPos.lng], { icon: bullIcon, zIndexOffset: 2000 }).addTo(map);
+        const bullMarker = L.marker([currentPos.lat, currentPos.lng], { icon: bullIcon, zIndexOffset: 2000 }).addTo(map);
 
-        // Đánh dấu mốc xuất phát Đất Liền
+        // Cắm cờ tại Đất Liền
         L.marker([mainlandPos.lat, mainlandPos.lng], {
             icon: L.divIcon({
                 className: 'main-flag-container',
@@ -216,10 +222,10 @@
         let boundaryPath = [[mainlandPos.lat, mainlandPos.lng]];
         let polyline = L.polyline(boundaryPath, { color: '#ffde00', weight: 4, opacity: 0.9, dashArray: '8, 8' }).addTo(map);
 
-        // Vẽ các đảo trên bản đồ
+        // Vẽ các đảo
         islands.forEach((island) => {
             L.circleMarker([island.lat, island.lng], {
-                radius: 16, fillColor: '#da251d', color: '#ffd700', weight: 3, fillOpacity: 0.85
+                radius: 18, fillColor: '#da251d', color: '#ffd700', weight: 3, fillOpacity: 0.85
             }).addTo(map);
 
             L.marker([island.lat, island.lng], { icon: L.divIcon({ className: 'dummy', html: '' }) })
@@ -227,109 +233,101 @@
              .bindTooltip(island.name, { permanent: true, direction: 'right', className: 'island-label-right', offset: [15, 0] });
         });
 
-        function flap() {
-            if (!isPlaying) return;
-            velocityY = flapStrength;
-            const img = document.getElementById('bull-img');
-            if (img) img.style.transform = 'rotate(-25deg) scale(1.15)';
-            setTimeout(() => { if (img) img.style.transform = 'rotate(10deg) scale(1)'; }, 150);
+        // HỆ THỐNG TÍCH LỰC NHẢY
+        function startCharge() {
+            if (isJumping || isCharging) return;
+            isCharging = true;
+            power = 0;
+            powerInterval = setInterval(() => {
+                if (power < 100) {
+                    power += 3;
+                    document.getElementById('power-fill').style.width = power + '%';
+                }
+            }, 30);
         }
 
-        window.addEventListener('click', (e) => {
-            if (e.target.tagName !== 'BUTTON') flap();
-        });
-        
-        window.addEventListener('keydown', (e) => {
-            if (e.code === 'Space') flap();
-            if (e.code === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keyState.left = true;
-            if (e.code === 'ArrowRight' || e.key === 'd' || e.key === 'D') keyState.right = true;
-        });
-        window.addEventListener('keyup', (e) => {
-            if (e.code === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keyState.left = false;
-            if (e.code === 'ArrowRight' || e.key === 'd' || e.key === 'D') keyState.right = false;
-        });
-
-        // Nút bấm cảm ứng
-        const btnLeft = document.getElementById('btn-left');
-        const btnRight = document.getElementById('btn-right');
-
-        ['touchstart', 'mousedown'].forEach(evt => {
-            btnLeft.addEventListener(evt, (e) => { e.stopPropagation(); keyState.left = true; });
-            btnRight.addEventListener(evt, (e) => { e.stopPropagation(); keyState.right = true; });
-        });
-        ['touchend', 'mouseup'].forEach(evt => {
-            btnLeft.addEventListener(evt, (e) => { e.stopPropagation(); keyState.left = false; });
-            btnRight.addEventListener(evt, (e) => { e.stopPropagation(); keyState.right = false; });
-        });
-
-        function startGame() {
-            document.getElementById('msg-box').style.display = 'none';
-            resetToLastCheckpoint();
-            isPlaying = true;
-            if (gameLoopId) cancelAnimationFrame(gameLoopId);
-            gameLoop();
+        function releaseJump() {
+            if (!isCharging || isJumping) return;
+            isCharging = false;
+            clearInterval(powerInterval);
+            executeJump();
         }
 
-        function resetToLastCheckpoint() {
-            if (currentTargetIndex === 0) {
-                bullPos = { ...mainlandPos };
-            } else {
-                const lastIsland = islands[currentTargetIndex - 1];
-                bullPos = { lat: lastIsland.lat, lng: lastIsland.lng };
-            }
-            velocityY = 0;
-            bullMarker.setLatLng([bullPos.lat, bullPos.lng]);
-            map.panTo([bullPos.lat, bullPos.lng]);
-        }
-
-        function gameOver() {
-            isPlaying = false;
-            document.getElementById('msg-title').innerText = '🌊 RƠI XUỐNG BIỂN RỒI!';
-            document.getElementById('msg-desc').innerText = `Thiên Ngưu rơi xuống biển. Bấm nút bên dưới để quay lại đảo vừa cắm cờ (hoặc Đất Liền) nhảy tiếp nhé!`;
-            document.getElementById('msg-box').style.display = 'block';
-        }
-
-        function gameLoop() {
-            if (!isPlaying) return;
-
-            velocityY += gravity;
-            bullPos.lat += velocityY;
-            
-            if (keyState.left) bullPos.lng -= moveSpeed;
-            if (keyState.right) bullPos.lng += moveSpeed;
-
-            bullMarker.setLatLng([bullPos.lat, bullPos.lng]);
-            map.panTo([bullPos.lat, bullPos.lng]);
-
-            // KIỂM TRA ĐẬU VÀO ĐẢO (Vùng nhận diện đảo rộng 1.3)
+        function executeJump() {
+            isJumping = true;
             const target = islands[currentTargetIndex];
-            const dist = Math.hypot(bullPos.lat - target.lat, bullPos.lng - target.lng);
-            if (dist < 1.3) {
-                claimIsland(target);
-            }
 
-            if (bullPos.lat < 4.0 || bullPos.lat > 22.0) {
-                gameOver();
-                return;
-            }
+            // Tính toán đường nhảy vòng cung dựa trên Lực Power
+            const startLat = currentPos.lat;
+            const startLng = currentPos.lng;
 
-            gameLoopId = requestAnimationFrame(gameLoop);
+            // Vị trí đích thực tế dựa theo Lực nhảy
+            const jumpDistance = (power / 100) * 1.3; // Tỷ lệ khoảng cách nhảy
+            const baseAngle = Math.atan2(target.lat - startLat, target.lng - startLng);
+            const finalAngle = baseAngle + angleOffset;
+
+            const endLat = startLat + Math.sin(finalAngle) * jumpDistance * 5;
+            const endLng = startLng + Math.cos(finalAngle) * jumpDistance * 5;
+
+            let step = 0;
+            const totalSteps = 40;
+            const arcHeight = 1.2; // Độ cao vòng cung khi nhảy
+
+            const jumpAnim = setInterval(() => {
+                step++;
+                const progress = step / totalSteps;
+                
+                // Tọa độ tuyến tính
+                const curLat = startLat + (endLat - startLat) * progress;
+                const curLng = startLng + (endLng - startLng) * progress;
+                
+                // Hiệu ứng nảy vòng cung
+                const arc = Math.sin(progress * Math.PI) * arcHeight;
+
+                bullMarker.setLatLng([curLat + arc * 0.3, curLng]);
+                map.panTo([curLat, curLng]);
+
+                if (step >= totalSteps) {
+                    clearInterval(jumpAnim);
+                    landCheck({ lat: endLat, lng: endLng });
+                }
+            }, 25);
         }
 
-        // CẮM HÀNG LOẠT CỜ VIỆT NAM TRÊN ĐẢO
+        function landCheck(landPos) {
+            isJumping = false;
+            power = 0;
+            document.getElementById('power-fill').style.width = '0%';
+            angleOffset = 0;
+
+            const target = islands[currentTargetIndex];
+            const dist = Math.hypot(landPos.lat - target.lat, landPos.lng - target.lng);
+
+            // KIỂM TRA ĐẬU ĐÚNG ĐẢO
+            if (dist < 1.2) {
+                currentPos = { lat: target.lat, lng: target.lng };
+                bullMarker.setLatLng([currentPos.lat, currentPos.lng]);
+                claimIsland(target);
+            } else {
+                // RỚT XUỐNG BIỂN
+                gameOver();
+            }
+        }
+
+        // CẮM HÀNG LOẠT CỜ VIỆT NAM KHI ĐẬU ĐÚNG ĐẢO
         function claimIsland(island) {
-            // 1. Cột cờ chính cực to ở giữa
+            // 1. Cờ chính to ở giữa
             L.marker([island.lat, island.lng], {
                 icon: L.divIcon({
                     className: 'main-flag-container',
                     html: '<div class="main-flag-top">🇻🇳</div><div class="main-flag-pole"></div>',
-                    iconSize: [50, 100],
-                    iconAnchor: [25, 100]
+                    iconSize: [50, 95],
+                    iconAnchor: [25, 95]
                 }),
                 zIndexOffset: 1500
             }).addTo(map);
 
-            // 2. Hàng loạt Cờ nhỏ cắm xung quanh đảo (6 cờ vệ tinh)
+            // 2. Hàng loạt Cờ nhỏ xung quanh đảo (6 cờ)
             const offsets = [
                 { lat: 0.12, lng: 0.12 },
                 { lat: -0.12, lng: -0.12 },
@@ -350,18 +348,14 @@
                 }).addTo(map);
             });
 
-            // Cộng điểm
             patriotScore += 10;
             document.getElementById('patriot-score').innerText = patriotScore;
 
-            // Kéo đường nét đứt vàng từ đất liền / đảo cũ sang đảo mới
             boundaryPath.push([island.lat, island.lng]);
             polyline.setLatLngs(boundaryPath);
 
             currentTargetIndex++;
             document.getElementById('claimed-count').innerText = currentTargetIndex;
-            const percent = (currentTargetIndex / islands.length) * 100;
-            document.getElementById('progress').style.width = percent + '%';
 
             if (currentTargetIndex < islands.length) {
                 document.getElementById('target-island').innerText = islands[currentTargetIndex].name;
@@ -370,27 +364,66 @@
             }
         }
 
+        function gameOver() {
+            document.getElementById('msg-title').innerText = '🌊 RƠI XUỐNG BIỂN RỒI!';
+            document.getElementById('msg-desc').innerText = `Lực nhảy chưa chuẩn nên Thiên Ngưu đã rơi xuống biển. Bấm nút bên dưới để quay lại vị trí đảo vừa cắm cờ (hoặc Đất Liền) nhảy lại nhé!`;
+            document.getElementById('msg-box').style.display = 'block';
+        }
+
+        function resetToLastPosition() {
+            if (currentTargetIndex === 0) {
+                currentPos = { ...mainlandPos };
+            } else {
+                const lastIsland = islands[currentTargetIndex - 1];
+                currentPos = { lat: lastIsland.lat, lng: lastIsland.lng };
+            }
+            bullMarker.setLatLng([currentPos.lat, currentPos.lng]);
+            map.panTo([currentPos.lat, currentPos.lng]);
+        }
+
+        function startGame() {
+            document.getElementById('msg-box').style.display = 'none';
+            resetToLastPosition();
+        }
+
+        // SỰ KIỆN PHÍM & CHUỘT
+        window.addEventListener('mousedown', (e) => { if (e.target.tagName !== 'BUTTON') startCharge(); });
+        window.addEventListener('mouseup', (e) => { if (e.target.tagName !== 'BUTTON') releaseJump(); });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') startCharge();
+            if (e.code === 'ArrowLeft' || e.key === 'a' || e.key === 'A') angleOffset -= 0.1;
+            if (e.code === 'ArrowRight' || e.key === 'd' || e.key === 'D') angleOffset += 0.1;
+        });
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space') releaseJump();
+        });
+
+        // NÚT ĐIỀU KHIỂN CẢM ỨNG
+        const btnJump = document.getElementById('btn-jump');
+        const btnLeft = document.getElementById('btn-left');
+        const btnRight = document.getElementById('btn-right');
+
+        ['touchstart', 'mousedown'].forEach(evt => {
+            btnJump.addEventListener(evt, (e) => { e.stopPropagation(); startCharge(); });
+            btnLeft.addEventListener(evt, (e) => { e.stopPropagation(); angleOffset -= 0.15; });
+            btnRight.addEventListener(evt, (e) => { e.stopPropagation(); angleOffset += 0.15; });
+        });
+
+        ['touchend', 'mouseup'].forEach(evt => {
+            btnJump.addEventListener(evt, (e) => { e.stopPropagation(); releaseJump(); });
+        });
+
         function finishGameSequence() {
-            isPlaying = false;
             boundaryPath.push(boundaryPath[0]);
             polyline.setLatLngs(boundaryPath);
 
-            let step = 0;
-            const autoFly = setInterval(() => {
-                if (step < boundaryPath.length) {
-                    bullMarker.setLatLng(boundaryPath[step]);
-                    map.panTo(boundaryPath[step]);
-                    step++;
-                } else {
-                    clearInterval(autoFly);
-                    document.getElementById('msg-title').innerText = '🎉 HOÀN THÀNH XÁC NHẬN CHỦ QUYỀN BIỂN ĐẢO VIỆT NAM!';
-                    document.getElementById('msg-desc').innerHTML = `
-                        <b>Tổng điểm Yêu Nước nhận được: <span style="color: #ffde00; font-size: 20px;">${patriotScore} Điểm</span></b><br><br>
-                        🇻🇳 Thiên Ngưu đã cắm HÀNG LOẠT CỜ VIỆT NAM rực rỡ trên khắp các đảo Hoàng Sa & Trường Sa và hoàn thành đường ranh giới bảo vệ lãnh hải Việt Nam!
-                    `;
-                    document.getElementById('msg-box').style.display = 'block';
-                }
-            }, 400);
+            document.getElementById('msg-title').innerText = '🎉 HOÀN THÀNH XÁC NHẬN CHỦ QUYỀN BIỂN ĐẢO VIỆT NAM!';
+            document.getElementById('msg-desc').innerHTML = `
+                <b>Tổng điểm Yêu Nước nhận được: <span style="color: #ffde00; font-size: 20px;">${patriotScore} Điểm</span></b><br><br>
+                🇻🇳 Thiên Ngưu đã nhảy cắm HÀNG LOẠT CỜ VIỆT NAM rực rỡ trên tất cả các đảo Hoàng Sa & Trường Sa!
+            `;
+            document.getElementById('msg-box').style.display = 'block';
         }
     </script>
 </body>

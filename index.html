@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thiên Ngưu Flappy - Xác Nhận Chủ Quyền Hoàng Sa & Trường Sa</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html { width: 100%; height: 100%; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; user-select: none; }
+        #map { width: 100vw; height: 100vh; background-color: #0b1d3a; }
+
+        /* Panel thông tin & Điểm Yêu Nước */
+        .info-panel {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.92);
+            color: #fff;
+            padding: 15px 20px;
+            border-radius: 12px;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 215, 0, 0.5);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.7);
+            max-width: 360px;
+            pointer-events: none;
+        }
+        .info-panel h2 { color: #ffd700; font-size: 16px; margin-bottom: 6px; text-transform: uppercase; }
+        .info-panel p { font-size: 12.5px; color: #cbd5e1; margin-bottom: 8px; line-height: 1.3; }
+        .score-box { font-size: 15px; font-weight: bold; color: #ffde00; margin: 6px 0; display: flex; justify-content: space-between; }
+        .progress-bar { background: #334155; height: 10px; border-radius: 5px; overflow: hidden; margin-top: 5px; }
+        .progress-fill { background: linear-gradient(90deg, #da251d, #ffde00); height: 100%; width: 0%; transition: width 0.3s; }
+
+        /* Màn hình thông báo */
+        .overlay-msg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+            background: rgba(15, 23, 42, 0.95);
+            border: 2px solid #ffd700;
+            color: #fff;
+            padding: 25px 35px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            max-width: 90vw;
+        }
+        .overlay-msg h1 { color: #ffde00; font-size: 22px; margin-bottom: 12px; line-height: 1.3; }
+        .overlay-msg p { font-size: 14px; color: #e2e8f0; margin-bottom: 15px; line-height: 1.4; }
+        .btn-start {
+            background: linear-gradient(135deg, #da251d, #ffde00);
+            color: #000;
+            font-weight: bold;
+            padding: 10px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(218, 37, 29, 0.4);
+        }
+
+        /* Avatar Thiên Ngưu */
+        .flappy-bull-container { width: 110px; height: 110px; display: flex; align-items: center; justify-content: center; }
+        .flappy-bull-img { width: 100px; height: 100px; object-fit: contain; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.8)); transition: transform 0.1s ease-out; }
+
+        /* Cột cờ Việt Nam Cao Vút */
+        .tall-flag-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: flagRise 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            transform-origin: bottom center;
+        }
+        .flag-top { font-size: 38px; filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.6)); line-height: 1; }
+        .flag-pole { width: 4px; height: 35px; background: linear-gradient(to bottom, #d4af37, #8b5a2b); border-radius: 2px; }
+
+        @keyframes flagRise {
+            0% { transform: scaleY(0) translateY(40px); opacity: 0; }
+            100% { transform: scaleY(1) translateY(0); opacity: 1; }
+        }
+
+        /* Nhãn đảo chỉa bên phải */
+        .island-label-right {
+            background: rgba(15, 23, 42, 0.85) !important;
+            border: 1px solid #ffd700 !important;
+            color: #ffffff !important;
+            border-radius: 6px !important;
+            padding: 4px 10px !important;
+            font-weight: bold !important;
+            font-size: 12px !important;
+            white-space: nowrap !important;
+            margin-left: 20px !important;
+        }
+        .island-label-right::before { border-right-color: rgba(15, 23, 42, 0.85) !important; }
+    </style>
+</head>
+<body>
+
+    <div class="info-panel">
+        <h2>🐂 THIÊN NGƯU BẢO VỆ BIỂN ĐÔNG</h2>
+        <p>• <b>CLICK / SPACE:</b> Vỗ cánh bay lên<br>• <b>A / D hoặc MŨI TÊN:</b> Lái Trâu Trái / Phải</p>
+        <div class="score-box">
+            <span>❤️ Điểm Yêu Nước: <span id="patriot-score" style="color: #ffde00;">0</span> pt</span>
+            <span>📍 Cắm cờ: <span id="claimed-count">0</span>/<span id="total-count">0</span></span>
+        </div>
+        <div style="font-size: 12px; color: #94a3b8; margin-bottom: 4px;">Đảo tiếp theo: <strong id="target-island" style="color: #ffde00;">Đảo Tri Tôn</strong></div>
+        <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+    </div>
+
+    <!-- Màn hình Hướng dẫn / Kết thúc -->
+    <div id="msg-box" class="overlay-msg">
+        <h1 id="msg-title">🇻🇳 THIÊN NGƯU BẢO VỆ CHỦ QUYỀN</h1>
+        <p id="msg-desc">Mỗi đảo cắm cờ thành công bạn sẽ nhận được 10 Điểm Yêu Nước! Hãy vỗ cánh bay thật chuẩn xác nhé.</p>
+        <button class="btn-start" onclick="startGame()">BẮT ĐẦU BAY 🚀</button>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // 1. Khởi tạo Bản đồ Biển Đông
+        const map = L.map('map', {
+            center: [13.5, 112.5],
+            zoom: 6,
+            zoomControl: false,
+            dragging: false,
+            touchZoom: false,
+            doubleClickZoom: false,
+            scrollWheelZoom: false
+        });
+
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri' }).addTo(map);
+        L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { opacity: 0.4 }).addTo(map);
+
+        // 2. Danh sách Đảo thuộc Hoàng Sa & Trường Sa Việt Nam
+        const islands = [
+            { name: "Đảo Tri Tôn", lat: 15.7833, lng: 111.2000 },
+            { name: "Đảo Hoàng Sa", lat: 16.5333, lng: 111.6167 },
+            { name: "Đảo Phú Lâm", lat: 16.8333, lng: 112.3333 },
+            { name: "Đảo Song Tử Tây", lat: 11.4286, lng: 114.3314 },
+            { name: "Đảo Nam Yết", lat: 10.1803, lng: 114.3644 },
+            { name: "Đảo Sinh Tồn", lat: 9.8850, lng: 114.4328 },
+            { name: "Đảo Trường Sa Lớn", lat: 8.6442, lng: 111.9208 }
+        ];
+
+        document.getElementById('total-count').innerText = islands.length;
+
+        const startPos = { lat: 16.0544, lng: 108.2022 };
+
+        // Vật lý Flappy & Điểm số
+        let bullPos = { ...startPos };
+        let velocityY = 0; 
+        const gravity = -0.0035; 
+        const flapStrength = 0.05; 
+        const moveSpeed = 0.04; 
+
+        let keyState = { left: false, right: false };
+        let currentTargetIndex = 0;
+        let patriotScore = 0;
+        let isPlaying = false;
+        let gameLoopId = null;
+
+        // Marker Thiên Ngưu
+        const bullIcon = L.divIcon({
+            className: 'flappy-bull-container',
+            html: `<img id="bull-img" src="./thien_nguu.jpg" class="flappy-bull-img" onerror="this.src='https://i.imgur.com/2D5kZgN.png'" />`,
+            iconSize: [110, 110],
+            iconAnchor: [55, 55]
+        });
+
+        const bullMarker = L.marker([bullPos.lat, bullPos.lng], { icon: bullIcon, zIndexOffset: 2000 }).addTo(map);
+
+        // Đường ranh giới
+        let boundaryPath = [];
+        let polyline = L.polyline([], { color: '#ffde00', weight: 4, opacity: 0.9, dashArray: '8, 8' }).addTo(map);
+
+        // Vẽ Đảo
+        islands.forEach((island) => {
+            L.circleMarker([island.lat, island.lng], {
+                radius: 12, fillColor: '#da251d', color: '#fff', weight: 2, fillOpacity: 0.85
+            }).addTo(map);
+
+            L.marker([island.lat, island.lng], { icon: L.divIcon({ className: 'dummy', html: '' }) })
+             .addTo(map)
+             .bindTooltip(island.name, { permanent: true, direction: 'right', className: 'island-label-right', offset: [15, 0] });
+        });
+
+        // Điều khiển
+        function flap() {
+            if (!isPlaying) return;
+            velocityY = flapStrength;
+            const img = document.getElementById('bull-img');
+            if (img) img.style.transform = 'rotate(-20deg) scale(1.15)';
+            setTimeout(() => { if (img) img.style.transform = 'rotate(10deg) scale(1)'; }, 150);
+        }
+
+        window.addEventListener('click', flap);
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') flap();
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') keyState.left = true;
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') keyState.right = true;
+        });
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') keyState.left = false;
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') keyState.right = false;
+        });
+
+        function startGame() {
+            document.getElementById('msg-box').style.display = 'none';
+            resetToLastCheckpoint();
+            isPlaying = true;
+            if (gameLoopId) cancelAnimationFrame(gameLoopId);
+            gameLoop();
+        }
+
+        function resetToLastCheckpoint() {
+            if (currentTargetIndex === 0) {
+                bullPos = { ...startPos };
+            } else {
+                const lastIsland = islands[currentTargetIndex - 1];
+                bullPos = { lat: lastIsland.lat, lng: lastIsland.lng };
+            }
+            velocityY = 0;
+            bullMarker.setLatLng([bullPos.lat, bullPos.lng]);
+            map.panTo([bullPos.lat, bullPos.lng]);
+        }
+
+        function gameOver() {
+            isPlaying = false;
+            document.getElementById('msg-title').innerText = '🌊 RƠI XUỐNG BIỂN RỒI!';
+            document.getElementById('msg-desc').innerText = `Thiên Ngưu rơi xuống biển. Bấm nút bên dưới để bay tiếp từ vị trí đảo vừa cắm cờ!`;
+            document.getElementById('msg-box').style.display = 'block';
+        }
+
+        // Loop Game
+        function gameLoop() {
+            if (!isPlaying) return;
+
+            velocityY += gravity;
+            bullPos.lat += velocityY;
+            
+            if (keyState.left) bullPos.lng -= moveSpeed;
+            if (keyState.right) bullPos.lng += moveSpeed;
+
+            bullMarker.setLatLng([bullPos.lat, bullPos.lng]);
+            map.panTo([bullPos.lat, bullPos.lng]);
+
+            // Chạm đảo
+            const target = islands[currentTargetIndex];
+            const dist = Math.hypot(bullPos.lat - target.lat, bullPos.lng - target.lng);
+            if (dist < 0.45) {
+                claimIsland(target);
+            }
+
+            if (bullPos.lat < 4.0 || bullPos.lat > 22.0) {
+                gameOver();
+                return;
+            }
+
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+
+        function claimIsland(island) {
+            // 1. Cắm Lá Cờ VN Cao Vút
+            L.marker([island.lat, island.lng], {
+                icon: L.divIcon({
+                    className: 'tall-flag-container',
+                    html: '<div class="flag-top">🇻🇳</div><div class="flag-pole"></div>',
+                    iconSize: [40, 70],
+                    iconAnchor: [20, 70]
+                })
+            }).addTo(map);
+
+            // 2. Cộng +10 Điểm Yêu Nước
+            patriotScore += 10;
+            document.getElementById('patriot-score').innerText = patriotScore;
+
+            // 3. Nối ranh giới
+            boundaryPath.push([island.lat, island.lng]);
+            polyline.setLatLngs(boundaryPath);
+
+            currentTargetIndex++;
+            document.getElementById('claimed-count').innerText = currentTargetIndex;
+            const percent = (currentTargetIndex / islands.length) * 100;
+            document.getElementById('progress').style.width = percent + '%';
+
+            if (currentTargetIndex < islands.length) {
+                document.getElementById('target-island').innerText = islands[currentTargetIndex].name;
+            } else {
+                // HOÀN THÀNH TẤT CẢ CÁC ĐẢO -> THIÊN NGƯU VẼ KHÉP KÍN RANH GIỚI
+                finishGameSequence();
+            }
+        }
+
+        function finishGameSequence() {
+            isPlaying = false;
+            
+            // Vẽ đường ranh giới nối khép kín về đảo xuất phát
+            boundaryPath.push(boundaryPath[0]);
+            polyline.setLatLngs(boundaryPath);
+
+            // Thiên Ngưu tự động bay lượn khép kín đường ranh giới
+            let step = 0;
+            const autoFly = setInterval(() => {
+                if (step < boundaryPath.length) {
+                    bullMarker.setLatLng(boundaryPath[step]);
+                    map.panTo(boundaryPath[step]);
+                    step++;
+                } else {
+                    clearInterval(autoFly);
+                    // Hiện màn hình chúc mừng đúng yêu cầu
+                    document.getElementById('msg-title').innerText = '🎉 BẠN ĐÃ HOÀN THÀNH XÁC ĐỊNH ĐẢO HOÀNG SA TRƯỜNG SA CỦA VN!';
+                    document.getElementById('msg-desc').innerHTML = `
+                        <b>Tổng điểm Yêu Nước nhận được: <span style="color: #ffde00; font-size: 18px;">${patriotScore} Điểm</span></b><br><br>
+                        🇻🇳 Thiên Ngưu đã cắm cờ cao vút trên tất cả các đảo và hoàn tất vẽ lại đường ranh giới bảo vệ chủ quyền lãnh hải Việt Nam!
+                    `;
+                    document.getElementById('msg-box').style.display = 'block';
+                }
+            }, 400);
+        }
+    </script>
+</body>
+</html>
